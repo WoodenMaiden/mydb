@@ -1,0 +1,7 @@
+log: 
+  # Must be one of error, warn, info, debug, trace
+  level: debug
+
+data:
+  # The path where the data will be stored
+  path: /tmp/data
