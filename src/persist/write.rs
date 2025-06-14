@@ -33,7 +33,7 @@ fn create_temp_file(og_path: PathBuf) -> Result<( PathBuf, File )> {
 /// Writes the given data into a file in a Readers-writer atomic way.
 /// It means that if a reader reads the file while a writer edits it it will not get a bad sate, it does that by writing into a temporary file, running dsync on that file and then rename that file.
 /// However this is not the ideal, this is not power-loss atomic, if a crash occcurs between the fsync and the renaming we are screwed
-pub fn bwrite1(path: PathBuf, data: &[u8]) -> Result<()> {
+pub fn _bwrite1(path: PathBuf, data: &[u8]) -> Result<()> {
     let (temp_file_name, mut target_file) = create_temp_file(path.clone())?; // 1. we create a temporary file
 
     target_file.write_all(data).with_context(|| {

@@ -1,17 +1,23 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{
+    path::PathBuf,
+    str::{FromStr, from_utf8},
+};
 
-use anyhow::{Context, anyhow};
+use std::sync::Arc;
+
+use anyhow::Context;
 use clap::Parser;
+use easy_repl::{CommandStatus, Repl, command};
 use log::info;
 use log4rs::append::console::ConsoleAppender;
-use log4rs::config::{Appender, Config, Root};
+use log4rs::config::{Appender, Config, Logger, Root};
 
 mod config;
 
-mod persist;
-use persist::write::bwrite1;
+mod commands;
+use commands::CommandController;
 
-use crate::persist::write::bwrite2;
+mod persist;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -28,6 +34,7 @@ fn main() {
 
     let stdout = ConsoleAppender::builder().build();
     let log_config = Config::builder()
+        .logger(Logger::builder().build("rustyline", log::LevelFilter::Off))
         .appender(Appender::builder().build("stdout", Box::new(stdout)))
         .build(Root::builder().appender("stdout").build(config.log.level))
         .unwrap();
@@ -38,17 +45,44 @@ fn main() {
     info!("Data path: {:?}", config.data.path);
     info!("Log level: {:?}", config.log.level);
 
-    bwrite1(
-        config.data.path.join("test_file.txt"),
-        b"Hello, world!",
-    )
-    .with_context(|| anyhow!("bwrite1 failed"))
-    .unwrap();
+    let command_controller = Arc::new(CommandController::new(config.data.path));
 
-    bwrite2(
-        config.data.path.join("test_file2.txt"),
-        b"Bonjour tout le monde!",
-    )
-    .with_context(|| anyhow!("bwrite2 failed"))
-    .unwrap();
+    let mut repl = Repl::builder()
+        .add(
+            "set",
+            {
+                let command_controller = Arc::clone(&command_controller);
+                command! {
+                    "Attributes a value to a key",
+                    (key: String, value: String) => |key: String, value: String| {
+                        match command_controller.clone().set(key.as_str(), value.as_bytes()) {
+                            Ok(_) => println!("{} set to {}", key, value),
+                            Err(e) => println!("{:?}", e)
+                        }
+                        Ok(CommandStatus::Done)
+                    }
+                }
+            },
+        )
+        .add(
+            "get",
+            {
+                let command_controller = Arc::clone(&command_controller);
+                command! {
+                    "Gets a value from a key",
+                    (key: String) => |key: String| {
+                        match command_controller.clone().get(key.as_str()) {
+                            Ok(Some(data)) => println!("{}", from_utf8(&data).map_or("Could not convert data to string", |s| s)),
+                            Ok(None) => println!("Key {} not found", key),
+                            Err(e) => println!("{:?}", e)
+                        }
+                        Ok(CommandStatus::Done)
+                    }
+                }
+            },
+        )
+        .build()
+        .expect("Failed to create repl");
+
+    repl.run().expect("Critical REPL error");
 }
