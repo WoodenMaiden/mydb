@@ -65,6 +65,22 @@ fn main() {
             },
         )
         .add(
+            "delete",
+            {
+                let command_controller = Arc::clone(&command_controller);
+                command! {
+                    "Deletes a key",
+                    (key: String) => |key: String| {
+                        match command_controller.clone().delete(key.as_str()) {
+                            Ok(_) => println!("Key {} deleted", key),
+                            Err(e) => println!("{:?}", e)
+                        }
+                        Ok(CommandStatus::Done)
+                    }
+                }
+            },
+        )
+        .add(
             "get",
             {
                 let command_controller = Arc::clone(&command_controller);

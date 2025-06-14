@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use std::path::PathBuf;
 
-use crate::persist::{read::read, write::bwrite2};
+use crate::persist::{del::delete, read::read, write::bwrite2};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandController {
@@ -28,16 +28,21 @@ impl CommandController {
         match read(path).with_context(|| format!("Failed to read key: {}", key)) {
             Ok(data) => Ok(Some(data)),
             Err(e) => {
-                if let Some(io_err) = e.downcast_ref::<std::io::Error>(){
+                if let Some(io_err) = e.downcast_ref::<std::io::Error>() {
                     if io_err.kind() == std::io::ErrorKind::NotFound {
                         Ok(None) // If the error is NotFound, we return None
                     } else {
-                        Err(e) 
+                        Err(e)
                     }
                 } else {
                     Err(e)
                 }
             }
         }
+    }
+
+    pub fn delete(&self, key: &str) -> Result<()> {
+        let path = self.directory.join(key);
+        delete(path).with_context(|| format!("Failed to delete key: {}", key))
     }
 }
