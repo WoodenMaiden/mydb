@@ -11,6 +11,8 @@ mod config;
 mod persist;
 use persist::write::bwrite1;
 
+use crate::persist::write::bwrite2;
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
@@ -38,8 +40,15 @@ fn main() {
 
     bwrite1(
         config.data.path.join("test_file.txt"),
-        vec![0, 2, 7, 3],
+        b"Hello, world!",
     )
     .with_context(|| anyhow!("bwrite1 failed"))
-    .unwrap()
+    .unwrap();
+
+    bwrite2(
+        config.data.path.join("test_file2.txt"),
+        b"Bonjour tout le monde!",
+    )
+    .with_context(|| anyhow!("bwrite2 failed"))
+    .unwrap();
 }
