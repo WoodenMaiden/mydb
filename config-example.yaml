@@ -4,4 +4,4 @@ log:
 
 data:
   # The path where the data will be stored
-  path: /tmp/data
+  path: /var/mydb

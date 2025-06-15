@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.98"
+bson = "2.15.0"
 clap = { version = "4.5.40", features = ["derive"] }
 easy-repl = "0.2.1"
 log = "0.4.27"
@@ -12,3 +13,4 @@ log4rs = {version = "1.3.0", features = [ "console_appender"]}
 rand = "0.9.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_yaml = "0.9.34"
+sha256 = "1.6.0"

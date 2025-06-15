@@ -1,24 +1,38 @@
 use anyhow::{Context, Result};
-use std::path::PathBuf;
+use std::{cell::RefCell, path::PathBuf};
 
-use crate::persist::{del::delete, read::read, write::bwrite2};
+use crate::{
+    persist::{del::delete, read::read, write::bwrite2},
+    wol::{self, WOLEngine},
+};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct CommandController {
     directory: PathBuf,
     write_fn: fn(&PathBuf, &[u8]) -> Result<()>,
+    wol: RefCell<WOLEngine>,
 }
 
 impl CommandController {
-    pub fn new(directory: PathBuf) -> Self {
-        Self {
+    pub fn new(directory: PathBuf) -> Result<Self> {
+        let wol = RefCell::new(
+            WOLEngine::new(directory.clone().join("wol"))
+                .with_context(|| "Error when setting up WOL (Write Ahead Log)")?,
+        );
+
+        Ok(Self {
             directory,
             write_fn: |p, b| bwrite2(p.to_path_buf(), b),
-        }
+            wol,
+        })
     }
 
     pub fn set(&self, key: &str, value: &[u8]) -> Result<()> {
         let path = self.directory.join(key);
+        self.wol.borrow_mut()
+            .write_event(wol::WriteEvent::Write(key.to_owned(), value.to_vec()))
+            .with_context(|| "Could not write to WOL")?;
+
         (self.write_fn)(&path, value)
     }
 

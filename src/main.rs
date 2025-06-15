@@ -1,13 +1,10 @@
-use std::{
-    path::PathBuf,
-    str::{FromStr, from_utf8},
-};
-
+use std::str::from_utf8;
 use std::sync::Arc;
+use std::{path::PathBuf, str::FromStr};
 
 use anyhow::Context;
 use clap::Parser;
-use easy_repl::{CommandStatus, Repl, command};
+use easy_repl::{command, Repl, CommandStatus};
 use log::info;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Config, Logger, Root};
@@ -18,6 +15,7 @@ mod commands;
 use commands::CommandController;
 
 mod persist;
+mod wol;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -45,7 +43,11 @@ fn main() {
     info!("Data path: {:?}", config.data.path);
     info!("Log level: {:?}", config.log.level);
 
-    let command_controller = Arc::new(CommandController::new(config.data.path));
+    let command_controller = Arc::new(
+        CommandController::new(config.data.path)
+            .with_context(|| "Could not create command controller")
+            .unwrap(),
+    );
 
     let mut repl = Repl::builder()
         .add(
